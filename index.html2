@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title> Shunchaki videoga qarang</title>
+<style>
+  body {
+    margin: 0;
+    padding: 25px;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  main {
+    max-width: 520px;
+    margin: 25px auto;
+    background: #222;
+    padding: 22px;
+    border-radius: 18px;
+  }
+  video {
+    width: 100%;
+    background: black;
+    border-radius: 12px;
+    margin-top: 15px;
+  }
+  button, a {
+    display: inline-block;
+    margin: 7px 3px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button { background: #f3a6d5; color: #191019; }
+  #status { min-height: 24px; color: #f3a6d5; }
+  label { display: block; margin: 18px 0; }
+  #save { color: white; background: #444; }
+</style>
+</head>
+<body>
+<main>
+  <h1>?? 3... 2... 1...</h1>
+  <p>Qara</p>
+
+
+  <button id="camera">Bos</button>
+  <video id="preview" autoplay muted playsinline></video>
+
+  <label>
+    <input type="checkbox" id="consent">
+     Roziman.
+  </label>
+
+  <button id="record" disabled>3𣇻 </button>
+  <button id="stop" disabled>To`xtat</button>
+  <p id="status">Boshlash</p>
+  <a id="save" hidden></a>
+</main>
+
+<script>
+const camera = document.querySelector("#camera");
+const preview = document.querySelector("#preview");
+const consent = document.querySelector("#consent");
+const record = document.querySelector("#record");
+const stop = document.querySelector("#stop");
+const status = document.querySelector("#status");
+const save = document.querySelector("#save");
+
+let stream = null;
+let recorder = null;
+let chunks = [];
+let countdownTimer = null;
+
+camera.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+    preview.srcObject = stream;
+    status.textContent = "Boshlandi  endi ko`ring. ";
+    camera.disabled = true;
+    record.disabled = !consent.checked;
+  } catch (error) {
+    status.textContent =
+     "xatolik";
+  }
+};
+
+consent.onchange = () => {
+  record.disabled = !(consent.checked && stream) ||
+                    (recorder && recorder.state === "recording");
+};
+
+record.onclick = async () => {
+  if (!stream || !consent.checked) return;
+
+  record.disabled = true;
+  let count = 3;
+
+  status.textContent = "Videoni ko`ring " + count + "...";
+  countdownTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      status.textContent = "videoni ko`ring " + count + "...";
+    } else {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      beginRecording();
+    }
+  }, 1000);
+};
+
+function beginRecording() {
+  if (!stream || !consent.checked) return;
+
+  chunks = [];
+  const mime = MediaRecorder.isTypeSupported("video/webm")
+    ? "video/webm" : "";
+
+  try {
+    recorder = new MediaRecorder(
+      stream, mime ? { mimeType: mime } : {}
+    );
+
+    recorder.ondataavailable = event => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, {
+        type: recorder.mimeType || "video/webm"
+      });
+      save.href = URL.createObjectURL(blob);
+      save.download = "my-video.webm";
+      save.textContent = "Videoni yuklab olish";
+      save.hidden = false;
+    
+      record.disabled = !(consent.checked && stream);
+    };
+
+    recorder.start();
+    stop.disabled = false;
+    status.textContent = "?? Davom etmoqda.";
+  } catch (error) {
+    status.textContent = "Bu brauzer ko`rishni qo憀lamasligi mumkin.";
+    record.disabled = false;
+  }
+}
+
+stop.onclick = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+    status.textContent = "Sanash bekor qilindi.";
+    record.disabled = !(consent.checked && stream);
+    return;
+  }
+
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();
+    stop.disabled = true;
+  }
+};
+
+window.addEventListener("beforeunload", () => {
+  if (stream) stream.getTracks().forEach(track => track.stop());
+});
+</script>
+</body>
+</html>
