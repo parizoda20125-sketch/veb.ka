@@ -92,7 +92,7 @@ footer{font-size:11px;color:#a69bb9;margin-top:20px}
     <p id="shareInfo" role="status"></p>
   </section>
 
-  <footer>Violet dreams • Butterfly glow ✨</footer>
+ 
 </main>
 
 <script>
@@ -123,21 +123,7 @@ $("agree").addEventListener("change", e => {
   $("openCamera").disabled = !e.target.checked;
 });
 
-// Mayin yulduzchalar va kapalaklar
-const butterflies = [
-  {x:.13,y:.22,size:31,phase:0,speed:.8},
-  {x:.83,y:.27,size:27,phase:2,speed:1},
-  {x:.18,y:.66,size:25,phase:4,speed:.7},
-  {x:.84,y:.72,size:32,phase:1,speed:.9},
-  {x:.50,y:.12,size:23,phase:3,speed:.8}
-];
 
-const stars = Array.from({length:38},(_,i)=>({
-  x:((i*73)%97+1)/100,
-  y:((i*47)%93+3)/100,
-  phase:i*1.7,
-  size:2+(i%4)
-}));
 
 function drawCover(video){
   const w=canvas.width,h=canvas.height;
@@ -162,43 +148,67 @@ function drawCover(video){
   ctx.fillRect(0,0,w,h);
 }
 
+
 function drawEffects(now){
   if(!preview.videoWidth){
     animationId=requestAnimationFrame(drawEffects);
     return;
   }
 
+  const w=canvas.width;
+  const h=canvas.height;
+  const vw=preview.videoWidth;
+  const vh=preview.videoHeight;
+
+  const scale=Math.max(w/vw,h/vh);
+  const sw=w/scale;
+  const sh=h/scale;
+  const sx=(vw-sw)/2;
+  const sy=(vh-sh)/2;
+
+  ctx.clearRect(0,0,w,h);
+
+  // Korean Glass Skin: yorqin va yumshoq tasvir
+  ctx.save();
+  ctx.filter="brightness(1.08) saturate(1.08) contrast(0.96)";
+  ctx.drawImage(preview,sx,sy,sw,sh,0,0,w,h);
+  ctx.restore();
+
+  // Nozik pushti glow
+  const glow=ctx.createRadialGradient(
+    w*.5,h*.35,20,
+    w*.5,h*.4,h*.75
+  );
+
+  glow.addColorStop(0,"rgba(255,230,245,0.13)");
+  glow.addColorStop(.6,"rgba(255,205,235,0.05)");
+  glow.addColorStop(1,"rgba(245,220,255,0.12)");
+
+  ctx.fillStyle=glow;
+  ctx.fillRect(0,0,w,h);
+
+  // Nafis ramka
+  ctx.strokeStyle="rgba(255,235,250,0.45)";
+  ctx.lineWidth=3;
+  ctx.strokeRect(5,5,w-10,h-10);
+
+  animationId=requestAnimationFrame(drawEffects);
+}
+
+
   drawCover(preview);
   const w=canvas.width,h=canvas.height;
   const t=now/1000;
 
-  // Yuz atrofida emas, ekran bo‘ylab dekorativ yulduzchalar
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
 
-  for(const s of stars){
-    const twinkle=.45+.55*(Math.sin(t*2+s.phase)+1)/2;
-    ctx.globalAlpha=twinkle;
-    ctx.fillStyle="#fff3ff";
-    ctx.shadowColor="#ffc8ff";
-    ctx.shadowBlur=12;
-    ctx.font=(s.size*2)+"px Arial";
-    ctx.fillText("✦",s.x*w,s.y*h);
-  }
 
-  // Butterfly Glow
-  for(const b of butterflies){
-    const bx=b.x*w+Math.sin(t*b.speed+b.phase)*13;
-    const by=b.y*h+Math.sin(t*1.3+b.phase)*15;
-    ctx.globalAlpha=.82;
-    ctx.shadowColor="#ffb6f2";
-    ctx.shadowBlur=18;
-    ctx.font=b.size+"px Arial";
-    ctx.fillText("🦋",bx,by);
-  }
 
-  ctx.globalAlpha=1;
-  ctx.shadowBlur=0;
+/* Korean Glass Skin */
+#effectCanvas {
+  filter: saturate(1.08) brightness(1.07) contrast(0.96);
+  border: 1px solid rgba(255, 220, 240, .65);
+  box-shadow: 0 0 24px rgba(255, 190, 230, .22);
+}
 
   // Mayin ramka
   ctx.strokeStyle="rgba(255,190,255,.55)";
